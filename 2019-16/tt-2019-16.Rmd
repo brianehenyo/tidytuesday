@@ -1,0 +1,56 @@
+---
+title: '#TidyTuesday 16'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load the data
+
+```{r}
+women_research <- readr::read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-04-16/women_research.csv") %>% 
+  as.data.frame(women_research) %>% 
+  mutate(field = case_when(field == "Computer science, maths" ~ "CS & Maths",
+                           field == "Women inventores" ~ "Patents",
+                           field == "Physical sciences" ~ "Physical\nSciences",
+                           field == "Health sciences" ~ "Health\nSciences",
+                           TRUE ~ as.character(field))) %>%
+  dcast(country ~ field) %>% 
+  group_by(country)
+```
+
+## Create radar plots
+
+```{r}
+library(reshape2)
+library(ggplot2)
+library(ggradar)
+
+women_research %>% 
+  # filter(country == "Brazil") %>% 
+  ggradar(axis.label.size = 3, legend.text.size = 10, legend.position = "right", 
+          grid.max = .6,
+          values.radar = c("0%", "50%", "60%"),
+          font.radar = "Avenir",
+          group.point.size = 1,
+          group.line.width = 1,
+          label.gridline.min = FALSE,
+          plot.extent.x.sf = 1,
+          plot.extent.y.sf = 1.2,
+          grid.label.size = 4,
+          axis.label.offset = 1.12,
+          gridline.mid.colour = "red",
+          background.circle.transparency = 0.1,
+          background.circle.colour = "white",
+          gridline.label.offset=0.12*(.6-((1/9) * (.6)))) +
+  theme(legend.key.height=unit(1,"line"), 
+        plot.title = element_text(size = 14, margin = margin(.2, .2, .1, .2, "cm")), 
+        plot.subtitle = element_text(size = 10), 
+        plot.caption = element_text(size = 8, hjust = 0, margin = margin(.2, .2, .1, .2, "cm"))) +
+  scale_color_brewer(palette = "Paired") +
+  labs(title = "Still a man's world", subtitle = "% of women authors in Scopus articles and patent applications from 2011-2015", caption = "Sources: \"Gender in the Global Research Landscape\" by Elsevier; The Economist\nVisualization: Briane Samson (Entry for #TidyTuesday)")
+
+ggsave(paste0("radar-women.png"), width=8, height=5)
+```

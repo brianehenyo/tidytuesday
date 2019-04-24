@@ -10,6 +10,17 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Load Data
 
 ```{r}
-tidy_anime <- readr::read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-04-23/raw_anime.csv")
+raw_anime <- readr::read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-04-23/raw_anime.csv")
+```
+
+## Tidy dataset
+
+```{r}
+tidy_anime <- raw_anime %>% 
+  mutate(producers = str_remove(producers, "\\["),
+         producers = str_remove(producers, "\\]")) %>% 
+  unnest(producers = strsplit(producers, ",")) %>% 
+  mutate(producers = str_remove(producers, "\\'"),
+         producers = str_remove(producers, "\\'"))
 ```
 

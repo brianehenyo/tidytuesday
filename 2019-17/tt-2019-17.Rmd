@@ -21,6 +21,59 @@ tidy_anime <- raw_anime %>%
          producers = str_remove(producers, "\\]")) %>% 
   unnest(producers = strsplit(producers, ",")) %>% 
   mutate(producers = str_remove(producers, "\\'"),
-         producers = str_remove(producers, "\\'"))
+         producers = str_remove(producers, "\\'")) %>% 
+  mutate(genre = str_remove(genre, "\\["),
+         genre = str_remove(genre, "\\]")) %>% 
+  unnest(genre = strsplit(genre, ",")) %>% 
+  mutate(genre = str_remove(genre, "\\'"),
+         genre = str_remove(genre, "\\'")) %>% 
+  mutate(studio = str_remove(studio, "\\["),
+         studio = str_remove(studio, "\\]")) %>% 
+  unnest(studio = strsplit(studio, ",")) %>% 
+  mutate(studio = str_remove(studio, "\\'"),
+         studio = str_remove(studio, "\\'")) %>% 
+  mutate(aired = str_remove(aired, "\\{"),
+         aired = str_remove(aired, "\\}"),
+         aired = str_remove(aired, "'from': "),
+         aired = str_remove(aired, "'to': "),
+         aired = word(aired, start = 1, 2, sep = ",")) %>% 
+  separate(aired, into = c("start_date", "end_date"), sep = ",") %>% 
+  mutate(start_date = str_remove_all(start_date, "'"),
+         start_date = str_sub(start_date, 1, 10),
+         end_date = str_remove_all(start_date, "'"),
+         end_date = str_sub(end_date, 1, 10)) %>%
+  mutate(start_date = lubridate::ymd(start_date),
+         end_date = lubridate::ymd(end_date)) %>% 
+  # Drop unranked or unpopular series
+  filter(rank != 0,
+         popularity != 0)
 ```
 
+## Scatter plot
+
+```{r}
+tidy_anime %>% 
+  filter(rank <= 100) %>% 
+  group_by(name) %>% 
+  ggplot(aes(x = members, y = score)) + 
+  geom_point(alpha = 0.4, aes(color = rating)) +
+  scale_color_discrete(guide = FALSE) +
+  scale_x_log10() +
+  # facet_wrap(~rating) +
+  theme_tufte(base_family = "Avenir", ticks = FALSE) +
+  labs(x = "Number of members that favorited", y = "Score")
+```
+
+## Scatter plot
+
+```{r}
+tidy_anime %>% 
+  filter(rank <= 100) %>% 
+  group_by(name) %>% 
+  ggplot(aes(x = rank, y = popularity)) + 
+  geom_point(alpha = 0.4, aes(color = rating)) +
+  scale_color_discrete(guide = FALSE) +
+  # facet_wrap(~rating) +
+  theme_tufte(base_family = "Avenir", ticks = FALSE) +
+  labs(x = "Ranking", y = "Popularity")
+```

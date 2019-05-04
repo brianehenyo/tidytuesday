@@ -10,7 +10,34 @@ knitr::opts_chunk$set(echo = TRUE)
 ## R Markdown
 
 ```{r cars}
+library(tidyverse)
+library(ggplot2)
+library(paletteer)
+library(ggthemes)
+
 bird_collisions <- readr::read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-04-30/bird_collisions.csv")
 mp_light <- readr::read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-04-30/mp_light.csv")
+```
+
+## Plot data
+
+```{r}
+bird_light <- bird_collisions %>% 
+  left_join(mp_light)
+```
+
+```{r}
+bird_light %>% 
+  filter(locality == "CHI") %>% 
+  group_by(genus) %>% 
+  summarise(nGenus = n()) %>% 
+  mutate(genus = fct_reorder(genus, -nGenus)) %>% 
+  ggplot(aes(x = genus, y = nGenus)) +
+  geom_bar(aes(fill = genus), alpha = .4, stat = "identity") +
+  coord_flip() +
+  scale_fill_viridis_d(guide = FALSE, direction = -1) +
+  theme_tufte(base_family = "Avenir" , ticks = FALSE)
+
+ggsave("genus_hist.png", width=8, height=8)
 ```
 

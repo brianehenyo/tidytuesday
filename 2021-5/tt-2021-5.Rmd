@@ -1,0 +1,133 @@
+---
+title: "TidyTuesday - Plastic Pollution"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load dataset
+
+```{r cars}
+tuesdata <- tidytuesdayR::tt_load(2021, week = 5)
+
+plastics <- tuesdata$plastics
+plastics
+```
+
+## Transform to longer dataset
+
+```{r}
+plastics_longer <- plastics %>% pivot_longer(!c(country, year, parent_company), 
+                                             names_to = "variable", 
+                                             values_to = "count") 
+describe(plastics_longer)
+```
+
+## Get PH data
+
+```{r}
+plastics_longer %>% filter(country == "Philippines" & parent_company != "Grand Total" & variable == "grand_total") %>% 
+  mutate(year = as_factor(year)) %>% 
+  select(!variable) %>% 
+  group_by(country, year) %>% 
+  summarise(total_count = sum(count)) %>% 
+  ggplot(aes(x=year, y=total_count)) +
+  geom_bar(fill="blue", stat="identity") +
+  geom_text(aes(label=total_count), family="Cabin", vjust=-0.5, color="black", size = 5) +
+  ylim(0, 60000) +
+  theme_tufte(base_family = "Cabin", ticks = FALSE) +
+  theme(axis.text.y = element_blank(),
+        axis.text.x = element_text(size = rel(2)),
+        plot.title = element_text(hjust = 0.5, size = rel(2)),
+        plot.subtitle = element_text(hjust = 0.5),
+        plot.caption = element_text(hjust = 0.5),
+        legend.title = element_blank()) +
+  labs(title = "Collected Plastic Waste in the Philippines",
+       subtitle = "According to Break Free from Plastic's Brand Audits, the number of brands and \nthe total amount of plastic waste continue to increase since 2019.",
+       x = "", 
+       y = "",
+       caption = "Data Source: Break Free from Plastic")
+
+ggsave("total_count.png", width=7, height=5)
+```
+## Get top 10 countries in 2020
+
+```{r}
+total.2020 <- plastics_longer %>% filter(year == 2020 & parent_company != "Grand Total" & variable == "grand_total") %>% 
+  select(!variable) %>% 
+  group_by(year, country) %>% 
+  summarise(total_count = sum(count)) 
+
+top.countries <- total.2020 %>% arrange(desc(total_count)) %>% 
+  top_n(10) 
+
+top.country.names <- top.countries$country
+
+total.2019 <- plastics_longer %>% filter(year == 2019 & parent_company != "Grand Total" & variable == "grand_total") %>% 
+  select(!variable) %>% 
+  group_by(year, country) %>% 
+  summarise(total_count = sum(count)) 
+
+total.2019 <- total.2019 %>% filter(country %in% top.countries$country)
+
+top.countries <- rbind(top.countries, total.2019)
+top.countries <- top.countries %>% mutate(year = as_factor(year))
+```
+
+
+
+## Compare to other countries
+
+```{r}
+plastics_longer %>% filter(parent_company != "Grand Total" & variable == "grand_total") %>% 
+  filter(country %in% top.country.names) %>% 
+  mutate(year = as_factor(year)) %>% 
+  select(!variable) %>% 
+  group_by(country, year) %>% 
+  summarise(total_count = sum(count)) %>% 
+  ggplot(aes(x=year, y=total_count, group = country, label = country)) +
+  geom_point(aes(colour=country, alpha = 0.8), show.legend = FALSE) +
+  geom_line(color="grey50", size=0.5, alpha = 0.8) +
+  geom_text_repel(
+      data = subset(top.countries, year == "2019"),
+      family="Cabin",
+      force = 2,
+      hjust = 1,
+      direction = "y",
+      point.padding = 0.1,
+      box.padding = 0.25,
+      nudge_x      = -0.2,
+      segment.colour = "grey50",
+      segment.alpha = 0.8,
+      segment.size = 0.25) +
+  geom_text_repel(
+      data = subset(top.countries, year == "2020"),
+      family="Cabin",
+      force = 2,
+      hjust = 0,
+      direction = "y",
+      point.padding = 0.1,
+      box.padding = 0.25,
+      nudge_x      = 0.2,
+      segment.colour = "grey50",
+      segment.alpha = 0.8,
+      segment.size = 0.25) +
+  scale_y_log10() +
+  ylim(0, 70000) +
+  theme_tufte(base_family = "Cabin", ticks = FALSE) +
+  theme(axis.text.x = element_text(size = rel(2)),
+        plot.title = element_text(hjust = 0.5, size = rel(2)),
+        plot.subtitle = element_text(hjust = 0.5),
+        plot.caption = element_text(hjust = 0.5),
+        legend.title = element_blank()) +
+  labs(title = "Top Countries with Most Collected Plastic Waste",
+       subtitle = "These are top 10 countries in terms of the total plastic waste collected ",
+       x = "", 
+       y = "",
+       caption = "Data Source: Break Free from Plastic")
+
+ggsave("top_countries.png", width=7, height=5)
+```
+
